@@ -32,9 +32,32 @@ jobs:
       - name: Verify build output
         run: test -f dist/index.html
 
+      - name: Prepare Firebase credentials
+        id: credentials
+        env:
+          SA_SECRET: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LUNCH_89380 }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SA_SECRET" ]; then
+            echo "::error::FIREBASE_SERVICE_ACCOUNT_LUNCH_89380 Secret이 비어 있습니다."
+            exit 1
+          fi
+          FIRST_CHAR=$(printf '%s' "$SA_SECRET" | head -c 1)
+          if [ "$FIRST_CHAR" = "{" ]; then
+            CREDS="$SA_SECRET"
+          else
+            CREDS=$(printf '%s' "$SA_SECRET" | base64 -d)
+          fi
+          printf '%s' "$CREDS" | python3 -c "import json,sys; d=json.load(sys.stdin); assert d.get('type')=='service_account', 'not a service account json'"
+          {
+            echo 'json<<CREDENTIALS_EOF'
+            printf '%s\n' "$CREDS"
+            echo 'CREDENTIALS_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - uses: google-github-actions/auth@v2
         with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_LUNCH_89380 }}
+          credentials_json: ${{ steps.credentials.outputs.json }}
 
       - name: Deploy preview channel
-        run: npx firebase-tools@14.4.0 hosting:channel:deploy pr-${{ github.event.pull_request.number }} --project lunch-89380 --expires 7d
+        run: npx firebase-tools@14.4.0 hosting:channel:deploy pr-${{ github.event.pull_request.number }} --project lunch-89380 --expires 7d --non-interactive

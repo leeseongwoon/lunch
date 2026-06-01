@@ -7,14 +7,21 @@ import RestaurantGrid, {
 } from './components/RestaurantGrid/RestaurantGrid';
 import PickSection from './components/PickSection/PickSection';
 import RestaurantModal from './components/RestaurantModal/RestaurantModal';
+import LoginModal from './components/LoginModal/LoginModal';
 import Footer from './components/Footer/Footer';
 import { useRestaurants } from './hooks/useRestaurants';
+import { useAdminAuth } from './hooks/useAdminAuth';
 import { getFirestoreErrorHint } from './lib/errorHints';
+import { seedDefaultRestaurantsIfEmpty } from './lib/restaurants';
 import type { Restaurant, RestaurantInput } from './types/restaurant';
 
 export default function App() {
   const { restaurants, loading, error, addOrUpdate, removeById } = useRestaurants();
+  const { user, isAdmin, signIn, signOut } = useAdminAuth();
   const [editMode, setEditMode] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -27,18 +34,60 @@ export default function App() {
   const gridRef = useRef<RestaurantGridHandle>(null);
   const pickSectionRef = useRef<HTMLElement>(null);
 
-  const openModal = useCallback((id: string | null = null) => {
-    setEditingId(id);
-    setModalOpen(true);
-  }, []);
+  const openModal = useCallback(
+    (id: string | null = null) => {
+      if (!user) return;
+      setEditingId(id);
+      setModalOpen(true);
+    },
+    [user],
+  );
 
   const closeModal = useCallback(() => {
     setModalOpen(false);
     setEditingId(null);
   }, []);
 
+  const handleToggleEdit = useCallback(() => {
+    if (editMode) {
+      setEditMode(false);
+      return;
+    }
+    if (!user) {
+      setLoginError(null);
+      setLoginOpen(true);
+      return;
+    }
+    setEditMode(true);
+  }, [editMode, user]);
+
+  const handleLogout = useCallback(async () => {
+    if (editMode) setEditMode(false);
+    closeModal();
+    await signOut();
+  }, [editMode, signOut, closeModal]);
+
+  const handleLogin = useCallback(
+    async (email: string, password: string) => {
+      setLoginLoading(true);
+      setLoginError(null);
+      try {
+        await signIn(email, password);
+        await seedDefaultRestaurantsIfEmpty();
+        setLoginOpen(false);
+        setEditMode(true);
+      } catch (e) {
+        setLoginError(e instanceof Error ? e.message : '로그인에 실패했습니다.');
+      } finally {
+        setLoginLoading(false);
+      }
+    },
+    [signIn],
+  );
+
   const handleDelete = useCallback(
     async (id: string) => {
+      if (!user) return;
       const name = restaurants.find((r) => r.id === id)?.name;
       if (!confirm(`"${name}"을(를) 삭제할까요?`)) return;
       try {
@@ -47,11 +96,12 @@ export default function App() {
         alert(e instanceof Error ? e.message : '삭제에 실패했습니다.');
       }
     },
-    [restaurants, removeById],
+    [restaurants, removeById, user],
   );
 
   const handleSave = useCallback(
     async (input: RestaurantInput, id: string | null) => {
+      if (!user) return;
       setSaving(true);
       try {
         await addOrUpdate(input, id);
@@ -62,7 +112,7 @@ export default function App() {
         setSaving(false);
       }
     },
-    [addOrUpdate, closeModal],
+    [addOrUpdate, closeModal, user],
   );
 
   const pickRandom = useCallback(() => {
@@ -131,7 +181,8 @@ export default function App() {
 service cloud.firestore {
   match /databases/{database}/documents {
     match /restaurants/{restaurantId} {
-      allow read, write: if true;
+      allow read: if true;
+      allow create, update, delete: if request.auth != null;
     }
   }
 }`}</pre>
@@ -143,7 +194,12 @@ service cloud.firestore {
   return (
     <div className={styles.container}>
       <Header count={restaurants.length} />
-      <Toolbar editMode={editMode} onToggle={() => setEditMode((v) => !v)} />
+      <Toolbar
+        editMode={editMode}
+        isAdmin={isAdmin}
+        onToggle={handleToggleEdit}
+        onLogout={handleLogout}
+      />
       <RestaurantGrid
         ref={gridRef}
         restaurants={restaurants}
@@ -161,6 +217,14 @@ service cloud.firestore {
         onPick={pickRandom}
       />
       <Footer />
+
+      <LoginModal
+        open={loginOpen}
+        loading={loginLoading}
+        error={loginError}
+        onClose={() => setLoginOpen(false)}
+        onSubmit={handleLogin}
+      />
 
       <RestaurantModal
         open={modalOpen}

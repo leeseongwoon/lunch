@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { isFirebaseConfigured } from '../lib/firebase';
 import {
   addRestaurant,
   deleteRestaurant,
-  seedDefaultRestaurantsIfEmpty,
   subscribeRestaurants,
   updateRestaurant,
 } from '../lib/restaurants';
@@ -13,8 +12,6 @@ export function useRestaurants() {
   const [restaurants, setRestaurants] = useState<Restaurant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const seededRef = useRef(false);
-
   useEffect(() => {
     if (!isFirebaseConfigured()) {
       setError(
@@ -29,21 +26,6 @@ export function useRestaurants() {
     let cancelled = false;
 
     const run = async () => {
-      try {
-        if (!seededRef.current) {
-          seededRef.current = true;
-          await seedDefaultRestaurantsIfEmpty();
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : '초기 데이터를 불러오지 못했습니다.');
-          setLoading(false);
-        }
-        return;
-      }
-
-      if (cancelled) return;
-
       return subscribeRestaurants(
         (data) => {
           if (!cancelled) {
