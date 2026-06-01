@@ -1,14 +1,14 @@
 import { useCallback, useRef, useState } from 'react';
 import styles from './App.module.css';
-import Header from './components/Header/Header';
-import Toolbar from './components/Toolbar/Toolbar';
+import Header from './components/Header/Header.tsx';
+import Toolbar from './components/Toolbar/Toolbar.tsx';
 import RestaurantGrid, {
   type RestaurantGridHandle,
-} from './components/RestaurantGrid/RestaurantGrid';
-import PickSection from './components/PickSection/PickSection';
-import RestaurantModal from './components/RestaurantModal/RestaurantModal';
-import LoginModal from './components/LoginModal/LoginModal';
-import Footer from './components/Footer/Footer';
+} from './components/RestaurantGrid/RestaurantGrid.tsx';
+import PickSection from './components/PickSection/PickSection.tsx';
+import RestaurantModal from './components/RestaurantModal/RestaurantModal.tsx';
+import LoginModal from './components/LoginModal/LoginModal.tsx';
+import Footer from './components/Footer/Footer.tsx';
 import { useRestaurants } from './hooks/useRestaurants';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { getFirestoreErrorHint } from './lib/errorHints';
