@@ -7,3 +7,5 @@ dist-ssr
 firebase-debug.log
 firebase-debug.*.log
 y/
+*-firebase-adminsdk-*.json
+*serviceAccount*.json
