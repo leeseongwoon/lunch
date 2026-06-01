@@ -40,7 +40,11 @@ export function subscribeRestaurants(
   onError: (message: string) => void,
 ): Unsubscribe {
   if (!isFirebaseConfigured() || !db) {
-    onError('Firebase 환경 변수가 설정되지 않았습니다. .env 파일을 확인해주세요.');
+    onError(
+      import.meta.env.PROD
+        ? 'Firebase 설정이 배포 빌드에 포함되지 않았습니다.'
+        : 'Firebase 환경 변수가 설정되지 않았습니다.',
+    );
     return () => {};
   }
 

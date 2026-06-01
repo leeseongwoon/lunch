@@ -17,7 +17,11 @@ export function useRestaurants() {
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
-      setError('Firebase 환경 변수가 설정되지 않았습니다. .env 파일을 확인해주세요.');
+      setError(
+        import.meta.env.PROD
+          ? 'Firebase 설정이 배포 빌드에 포함되지 않았습니다. GitHub Actions Secrets에 VITE_FIREBASE_* 값을 등록한 뒤 다시 배포해주세요.'
+          : 'Firebase 환경 변수가 설정되지 않았습니다. 프로젝트 루트의 .env 파일을 확인한 뒤 개발 서버를 다시 실행해주세요.',
+      );
       setLoading(false);
       return;
     }
