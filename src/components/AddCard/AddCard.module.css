@@ -1,0 +1,31 @@
+.cardAdd {
+  background: transparent;
+  border: 1.5px dashed var(--border-hover);
+  border-radius: var(--radius-lg);
+  padding: 18px 16px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  min-height: 140px;
+  transition: border-color 0.2s, color 0.2s;
+  font-family: 'Noto Sans KR', sans-serif;
+}
+
+.cardAdd:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.visible {
+  display: flex;
+}
+
+.icon {
+  font-size: 26px;
+}

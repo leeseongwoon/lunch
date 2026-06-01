@@ -1,0 +1,48 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #f7f6f2;
+  --surface: #ffffff;
+  --border: #e4e2db;
+  --border-hover: #c8c5bc;
+  --text-primary: #1a1917;
+  --text-secondary: #706e68;
+  --text-muted: #a09d97;
+  --accent: #1d9e75;
+  --accent-dark: #0f6e56;
+  --highlight-bg: #e6f9f3;
+  --highlight-border: #1d9e75;
+  --tag-bg: #eef9f5;
+  --tag-color: #0f6e56;
+  --tag-border: #b6e8d4;
+  --danger: #e24b4a;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+body {
+  font-family: 'Noto Sans KR', sans-serif;
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  padding: 40px 20px 80px;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

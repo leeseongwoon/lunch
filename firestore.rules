@@ -1,0 +1,10 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // TODO: 인증 연동 후 read/write 조건을 제한하세요.
+    match /restaurants/{restaurantId} {
+      allow read, write: if true;
+    }
+  }
+}
