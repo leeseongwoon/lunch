@@ -15,6 +15,7 @@
   min-height: 140px;
   transition: border-color 0.2s, color 0.2s;
   font-family: 'Noto Sans KR', sans-serif;
+  text-align: center;
 }
 
 .cardAdd:hover {
