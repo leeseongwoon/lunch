@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './App.module.css';
 import Header from './components/Header/Header.tsx';
 import Toolbar from './components/Toolbar/Toolbar.tsx';
@@ -12,6 +12,7 @@ import Footer from './components/Footer/Footer.tsx';
 import { useRestaurants } from './hooks/useRestaurants';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { getFirestoreErrorHint } from './lib/errorHints';
+import { setAnalyticsUserId, trackEvent } from './lib/analytics';
 import { seedDefaultRestaurantsIfEmpty } from './lib/restaurants';
 import type { Restaurant, RestaurantInput } from './types/restaurant';
 
@@ -33,6 +34,10 @@ export default function App() {
   const lastPickRef = useRef(-1);
   const gridRef = useRef<RestaurantGridHandle>(null);
   const pickSectionRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    setAnalyticsUserId(user?.uid ?? null);
+  }, [user?.uid]);
 
   const openModal = useCallback(
     (id: string | null = null) => {
@@ -59,12 +64,14 @@ export default function App() {
       return;
     }
     setEditMode(true);
+    trackEvent('edit_mode_enter');
   }, [editMode, user]);
 
   const handleLogout = useCallback(async () => {
     if (editMode) setEditMode(false);
     closeModal();
     await signOut();
+    trackEvent('admin_logout');
   }, [editMode, signOut, closeModal]);
 
   const handleLogin = useCallback(
@@ -74,6 +81,7 @@ export default function App() {
       try {
         await signIn(email, password);
         await seedDefaultRestaurantsIfEmpty();
+        trackEvent('admin_login');
         setLoginOpen(false);
         setEditMode(true);
       } catch (e) {
@@ -92,6 +100,7 @@ export default function App() {
       if (!confirm(`"${name}"을(를) 삭제할까요?`)) return;
       try {
         await removeById(id);
+        trackEvent('restaurant_delete', { restaurant_name: name ?? '' });
       } catch (e) {
         alert(e instanceof Error ? e.message : '삭제에 실패했습니다.');
       }
@@ -105,6 +114,10 @@ export default function App() {
       setSaving(true);
       try {
         await addOrUpdate(input, id);
+        trackEvent(id ? 'restaurant_update' : 'restaurant_add', {
+          restaurant_name: input.name,
+          food_tag: input.tag,
+        });
         closeModal();
       } catch (e) {
         alert(e instanceof Error ? e.message : '저장에 실패했습니다.');
@@ -142,9 +155,15 @@ export default function App() {
         setHighlightedIndex(pick);
         gridRef.current?.scrollToCard(pick);
 
-        setPickResult(restaurants[pick]);
+        const picked = restaurants[pick];
+        setPickResult(picked);
         setShowResult(true);
         setRunning(false);
+        trackEvent('lunch_pick', {
+          restaurant_name: picked.name,
+          food_tag: picked.tag,
+          restaurant_count: restaurants.length,
+        });
 
         setTimeout(() => {
           pickSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
