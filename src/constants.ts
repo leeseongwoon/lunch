@@ -9,6 +9,7 @@ export const FOOD_TAGS = [
   '경양식',
   '도시락',
   '아시안',
+  '패스트푸드',
   '기타',
 ] as const;
 
