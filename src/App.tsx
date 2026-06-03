@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styles from './App.module.css';
 import Header from './components/Header/Header.tsx';
+import SearchBar from './components/SearchBar/SearchBar.tsx';
 import Toolbar from './components/Toolbar/Toolbar.tsx';
 import RestaurantGrid, {
   type RestaurantGridHandle,
@@ -13,6 +14,8 @@ import { useRestaurants } from './hooks/useRestaurants';
 import { useAdminAuth } from './hooks/useAdminAuth';
 import { getFirestoreErrorHint } from './lib/errorHints';
 import { setAnalyticsUserId, trackEvent } from './lib/analytics';
+import type { FoodTag } from './constants';
+import { filterRestaurants } from './lib/filterRestaurants';
 import { seedDefaultRestaurantsIfEmpty } from './lib/restaurants';
 import type { Restaurant, RestaurantInput } from './types/restaurant';
 
@@ -30,6 +33,13 @@ export default function App() {
   const [pickResult, setPickResult] = useState<Restaurant | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [tagFilter, setTagFilter] = useState<FoodTag | ''>('');
+
+  const filteredRestaurants = useMemo(
+    () => filterRestaurants(restaurants, searchQuery, tagFilter),
+    [restaurants, searchQuery, tagFilter],
+  );
 
   const lastPickRef = useRef(-1);
   const gridRef = useRef<RestaurantGridHandle>(null);
@@ -38,6 +48,12 @@ export default function App() {
   useEffect(() => {
     setAnalyticsUserId(user?.uid ?? null);
   }, [user?.uid]);
+
+  useEffect(() => {
+    setHighlightedIndex(-1);
+    setShowResult(false);
+    setPickResult(null);
+  }, [searchQuery, tagFilter]);
 
   const openModal = useCallback(
     (id: string | null = null) => {
@@ -129,7 +145,7 @@ export default function App() {
   );
 
   const pickRandom = useCallback(() => {
-    if (running || restaurants.length === 0) return;
+    if (running || filteredRestaurants.length === 0) return;
 
     setRunning(true);
     setShowResult(false);
@@ -139,15 +155,15 @@ export default function App() {
     const total = 20;
 
     const tick = () => {
-      const current = Math.floor(Math.random() * restaurants.length);
+      const current = Math.floor(Math.random() * filteredRestaurants.length);
       setHighlightedIndex(current);
       count++;
 
       if (count >= total) {
-        let pick = Math.floor(Math.random() * restaurants.length);
-        if (restaurants.length > 1) {
+        let pick = Math.floor(Math.random() * filteredRestaurants.length);
+        if (filteredRestaurants.length > 1) {
           while (pick === lastPickRef.current) {
-            pick = Math.floor(Math.random() * restaurants.length);
+            pick = Math.floor(Math.random() * filteredRestaurants.length);
           }
         }
         lastPickRef.current = pick;
@@ -155,14 +171,14 @@ export default function App() {
         setHighlightedIndex(pick);
         gridRef.current?.scrollToCard(pick);
 
-        const picked = restaurants[pick];
+        const picked = filteredRestaurants[pick];
         setPickResult(picked);
         setShowResult(true);
         setRunning(false);
         trackEvent('lunch_pick', {
           restaurant_name: picked.name,
           food_tag: picked.tag,
-          restaurant_count: restaurants.length,
+          restaurant_count: filteredRestaurants.length,
         });
 
         setTimeout(() => {
@@ -175,7 +191,7 @@ export default function App() {
     };
 
     tick();
-  }, [running, restaurants]);
+  }, [running, filteredRestaurants]);
 
   const editingRestaurant = editingId
     ? restaurants.find((r) => r.id === editingId)
@@ -213,6 +229,14 @@ service cloud.firestore {
   return (
     <div className={styles.container}>
       <Header count={restaurants.length} />
+      <SearchBar
+        value={searchQuery}
+        onChange={setSearchQuery}
+        tag={tagFilter}
+        onTagChange={setTagFilter}
+        filteredCount={filteredRestaurants.length}
+        totalCount={restaurants.length}
+      />
       <Toolbar
         editMode={editMode}
         isAdmin={isAdmin}
@@ -221,7 +245,7 @@ service cloud.firestore {
       />
       <RestaurantGrid
         ref={gridRef}
-        restaurants={restaurants}
+        restaurants={filteredRestaurants}
         editMode={editMode}
         highlightedIndex={highlightedIndex}
         onAdd={() => openModal(null)}
@@ -231,6 +255,7 @@ service cloud.firestore {
       <PickSection
         ref={pickSectionRef}
         running={running}
+        disabled={filteredRestaurants.length === 0}
         result={pickResult}
         showResult={showResult}
         onPick={pickRandom}

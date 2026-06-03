@@ -4,13 +4,14 @@ import styles from './PickSection.module.css';
 
 interface PickSectionProps {
   running: boolean;
+  disabled?: boolean;
   result: Restaurant | null;
   showResult: boolean;
   onPick: () => void;
 }
 
 const PickSection = forwardRef<HTMLElement, PickSectionProps>(function PickSection(
-  { running, result, showResult, onPick },
+  { running, disabled = false, result, showResult, onPick },
   ref,
 ) {
   return (
@@ -19,7 +20,7 @@ const PickSection = forwardRef<HTMLElement, PickSectionProps>(function PickSecti
         type="button"
         className={styles.pickBtn}
         onClick={onPick}
-        disabled={running}
+        disabled={running || disabled}
       >
         🎲 오늘의 점심 추첨하기
       </button>
